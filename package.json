@@ -1,0 +1,33 @@
+{
+  "name": "occam",
+  "version": "0.1.0",
+  "description": "Occam's razor for Claude Code: a hook and a skill that route every task to the cheapest model and effort that can do it.",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "author": "romulorgc",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/romulorgc/occam.git"
+  },
+  "homepage": "https://github.com/romulorgc/occam#readme",
+  "bugs": {
+    "url": "https://github.com/romulorgc/occam/issues"
+  },
+  "keywords": [
+    "claude-code",
+    "claude",
+    "hooks",
+    "skills",
+    "subagents",
+    "model-routing",
+    "cost-optimization",
+    "tokens"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node skills/occam/scripts/test-hook.mjs && node test/install.test.mjs"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "node \"$HOME/.claude/hooks/occam.mjs\"" } ] }
+    ],
+    "UserPromptSubmit": [
+      { "hooks": [ { "type": "command", "command": "node \"$HOME/.claude/hooks/occam.mjs\"" } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": "Agent|Task", "hooks": [ { "type": "command", "command": "node \"$HOME/.claude/hooks/occam.mjs\"" } ] }
+    ],
+    "PreCompact": [
+      { "hooks": [ { "type": "command", "command": "node \"$HOME/.claude/hooks/occam.mjs\"" } ] }
+    ]
+  }
+}
