@@ -67,6 +67,14 @@ test('fresh install creates the four entries and copies files', () => {
   assert.match(r.stdout, /\/occam measure/);
 });
 
+test('no temporary file is left in the target folder after an install', () => {
+  const ctx = setup();
+  fs.writeFileSync(ctx.settings, '{}\n');
+  const r = run(ctx);
+  assert.equal(r.status, 0, r.stderr);
+  assert.deepEqual(fs.readdirSync(ctx.dir).filter((f) => f.includes('.occam-tmp-')), []);
+});
+
 test('second run does not duplicate, rewrite or back up', () => {
   const ctx = setup();
   fs.writeFileSync(ctx.settings, '{\n  "a": 1\n}\n');

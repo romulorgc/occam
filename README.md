@@ -66,7 +66,7 @@ flowchart LR
   C -->|too big, or reads a lot| A[Agent call]
   A --> H{{occam hook}}
   H -->|read-only brief| K[Haiku]
-  H -->|default| S[Sonnet · medium]
+  H -->|everything else| S[Sonnet · medium]
   H -->|reviewer, or a stated reason| O[Opus, up to high]
   H -->|architect| F[Fable · medium]
 ```
@@ -148,7 +148,7 @@ Everything has a default and nothing needs configuring. To use your own agent na
 - **It cuts waste, never quality.** Review and tests stay on strong models. Anything headed for production still gets reviewed.
 - **Costs are estimates** from public list prices. On a subscription, read them as a proxy for how fast you burn quota.
 - **It does not change your main model** and it does not write to `settings.json` beyond registering itself, unless you opt in with `capStoredEffort`.
-- **It approves the call it rewrites.** To change the model or the effort, the hook returns the call with `permissionDecision: "allow"`, which is how a Claude Code hook rewrites tool input. That skips the default permission prompt for the Agent tool. Deny and ask rules in your settings are still evaluated.
+- **It approves the call it rewrites.** To change the model or the effort, the hook returns the call with `permissionDecision: "allow"`, which is how a Claude Code hook rewrites tool input. That skips the default permission prompt for the Agent tool. Deny and ask rules in your settings are still evaluated. To see every rewritten call before it runs, set `permission` to `ask` in the config.
 - **You are always in charge.** One marker in the brief overrides any swap.
 
 ## FAQ

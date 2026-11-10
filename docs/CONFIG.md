@@ -27,6 +27,7 @@ event, so a change takes effect on the next prompt.
 | `prices` | see below | Cache-read price, in US$ per million tokens, by model, used by the cost line and by `measure.mjs`. |
 | `callBudget` | see below | How many tool calls fit in the main conversation before the hook says to delegate. |
 | `capStoredEffort` | `null` | Opt-in. See below. |
+| `permission` | `"allow"` | The permission decision returned with the rewritten Agent call: `"allow"`, `"ask"` or `"none"`. Any other value means `"allow"`. See below. |
 
 Types in `opusFree` but not in `fableFree` (the reviewer by default) have xhigh and max capped to `high`. Every other
 type that is not in `fableFree` has xhigh and max lowered to `medium`, or to `high` with `[high: reason]`.
@@ -67,6 +68,12 @@ across sessions. A high stored level makes every response slower and costlier.
 - `"low"`, `"medium"`, `"high"` or `"xhigh"`: at SessionStart, any stored level above this one is lowered to it.
   Only those values change (a surgical text swap, so the rest of the file stays byte for byte identical), and the
   write is atomic (temporary file, then rename).
+
+### `permission`
+
+- `"allow"` (default): the hook returns `permissionDecision: "allow"`. This skips the default permission prompt for the Agent tool, and Claude Code still evaluates the deny and ask rules in your settings.
+- `"ask"`: the hook returns `"ask"`, so you see the rewritten call before it runs.
+- `"none"`: the hook returns only the rewritten input, with no permission decision. Claude Code in auto mode can deny the changed call, so the swap may not happen.
 
 ## Markers
 

@@ -699,5 +699,53 @@ test('measure.mjs: BOM in config.json, merge by field, wrong type falls back to 
   }
 });
 
+test('permission: default is allow, ask returns ask, none omits both fields, invalid is allow', () => {
+  const call = { description: 'd', prompt: 'p' };
+  clearConfig();
+  let o = outOf(call);
+  assert.equal(o.permissionDecision, 'allow');
+  assert.match(o.permissionDecisionReason, /^occam /);
+  writeConfig({ permission: 'ask' });
+  o = outOf(call);
+  assert.equal(o.permissionDecision, 'ask');
+  assert.match(o.permissionDecisionReason, /^occam /);
+  assert.ok(o.updatedInput);
+  writeConfig({ permission: 'none' });
+  o = outOf(call);
+  assert.ok(!('permissionDecision' in o));
+  assert.ok(!('permissionDecisionReason' in o));
+  assert.equal(o.updatedInput.model, 'sonnet');
+  for (const bad of ['deny', 'ALLOW', 5, null, {}]) {
+    writeConfig({ permission: bad });
+    assert.equal(outOf(call).permissionDecision, 'allow');
+  }
+  clearConfig();
+});
+
+test('capStoredEffort keeps the file mode (POSIX) and leaves no temporary file', () => {
+  writeConfig({ capStoredEffort: 'high' });
+  writeSettings({ modelSettings: { 'claude-fable-5-2': { effortLevel: 'xhigh' } } }, 2);
+  if (process.platform !== 'win32') fs.chmodSync(path.join(tmp, 'settings.json'), 0o600);
+  run({ hook_event_name: 'SessionStart', source: 'startup' });
+  assert.match(settingsText(), /"high"/);
+  if (process.platform !== 'win32') {
+    assert.equal(fs.statSync(path.join(tmp, 'settings.json')).mode & 0o777, 0o600);
+  }
+  assert.deepEqual(fs.readdirSync(tmp).filter((f) => f.includes('.tmp-')), []);
+  clearConfig();
+});
+
+test('output larger than a pipe buffer arrives whole (the hook does not exit before stdout flushes)', () => {
+  // Regression: process.exit() right after the write cut the SessionStart payload near 8 KB on macOS.
+  const n = 100000;
+  const out = JSON.parse(runRaw(JSON.stringify(Array(n).fill('List the files.')), ['--read-only']));
+  assert.equal(out.length, n);
+  fs.mkdirSync(path.join(tmp, 'skills', 'occam'), { recursive: true });
+  fs.writeFileSync(path.join(tmp, 'skills', 'occam', 'SKILL.md'), fs.readFileSync(SKILL, 'utf8'));
+  const start = runRaw({ hook_event_name: 'SessionStart', source: 'startup' });
+  assert.ok(start.length > 8192, 'the SessionStart payload is larger than the smallest pipe buffer');
+  assert.ok(JSON.parse(start).hookSpecificOutput.additionalContext.length > 8000);
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 console.log(`\n${ok} cases ok`);

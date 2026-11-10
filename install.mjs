@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // occam installer: copies the hook and skill into a Claude Code config
 // folder and registers the hook in settings.json. Zero dependencies.
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -80,11 +81,18 @@ function serialize(data, indent, eol) {
 }
 
 function atomicWrite(file, content) {
-  const tmp = `${file}.occam-tmp-${process.pid}`;
+  const tmp = `${file}.occam-tmp-${crypto.randomBytes(6).toString('hex')}`;
   // Keep the permissions of the file being replaced: settings.json may be private.
   const mode = fs.existsSync(file) ? fs.statSync(file).mode & 0o777 : undefined;
-  fs.writeFileSync(tmp, content, mode === undefined ? undefined : { mode });
-  fs.renameSync(tmp, file);
+  try {
+    fs.writeFileSync(tmp, content, mode === undefined ? { flag: 'wx' } : { flag: 'wx', mode });
+    fs.renameSync(tmp, file);
+  } catch (e) {
+    try {
+      fs.rmSync(tmp, { force: true });
+    } catch {}
+    throw e;
+  }
 }
 
 function stamp() {

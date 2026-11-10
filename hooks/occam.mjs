@@ -33,6 +33,7 @@
 //
 // A hook that fails never blocks: exit 0 with no output.
 
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -62,6 +63,7 @@ const DEFAULTS = {
   },
   callBudget: { lowBelow: 100000, lowCalls: 4, midUpTo: 150000, midCalls: 3, highCalls: 2 },
   capStoredEffort: null,
+  permission: 'allow',
 };
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
@@ -110,6 +112,7 @@ function loadConfig() {
       for (const k of Object.keys(b)) if (Number.isFinite(raw.callBudget[k]) && raw.callBudget[k] >= 0) b[k] = raw.callBudget[k];
       cfg.callBudget = b;
     }
+    if (['allow', 'ask', 'none'].includes(raw.permission)) cfg.permission = raw.permission;
     if (raw.capStoredEffort === null || LEVELS.includes(raw.capStoredEffort)) cfg.capStoredEffort = raw.capStoredEffort;
   } catch {
     return { ...DEFAULTS };
@@ -424,13 +427,15 @@ function capEffort() {
       if (crlf) next = next.replace(/\n/g, '\r\n');
       if (JSON.stringify(JSON.parse(next)) !== target) return;
     }
-    const tmp = file + '.tmp-' + process.pid;
+    // Same mode as the original, exclusive create, random name: an existing path is never reused.
+    const mode = fs.statSync(file).mode & 0o777;
+    const tmp = file + '.tmp-' + crypto.randomBytes(6).toString('hex');
     try {
-      fs.writeFileSync(tmp, next);
+      fs.writeFileSync(tmp, next, { flag: 'wx', mode });
       fs.renameSync(tmp, file);
     } catch (e) {
       try {
-        fs.unlinkSync(tmp);
+        fs.rmSync(tmp, { force: true });
       } catch {}
       throw e;
     }
@@ -582,10 +587,12 @@ function onDelegation(j) {
   if (guard.rewritten.length) parts.push(`swapped ${guard.rewritten.join(', ')}`);
   const out = {
     hookEventName: 'PreToolUse',
-    permissionDecision: 'allow',
-    permissionDecisionReason: `occam ${parts.join('; ')}`,
     updatedInput: next,
   };
+  if (CFG.permission !== 'none') {
+    out.permissionDecision = CFG.permission === 'ask' ? 'ask' : 'allow';
+    out.permissionDecisionReason = `occam ${parts.join('; ')}`;
+  }
   const toConversation = [];
   if (guard.notice) toConversation.push(guard.notice);
   else if (filled.includes('model'))
@@ -598,6 +605,10 @@ function onDelegation(j) {
 
 // ---------------------------------------------------------------- entry point
 
+// No process.exit() after a write: a write to a pipe can still be pending, and exiting cuts it.
+// Seen on macOS, where the SessionStart payload arrived cut near 8 KB and was no longer valid JSON.
+// The exit code is set and the process ends on its own once stdout has flushed.
+process.stdout.on('error', () => {});
 try {
   const chunks = [];
   for await (const c of process.stdin) chunks.push(c);
@@ -610,21 +621,20 @@ try {
       const list = JSON.parse(raw);
       process.stdout.write(JSON.stringify(list.map((p) => (process.argv[2] === '--explain' ? classify(p) : isReadOnly(p)))));
     } catch {}
-    process.exit(0);
-  }
-
-  const j = JSON.parse(raw);
-  if (j?.hook_event_name === 'PreCompact') {
-    process.stdout.write(onCompact());
   } else {
-    let out = null;
-    if (j?.hook_event_name === 'SessionStart' && !j.agent_id) {
-      capEffort();
-      out = onStart();
-    } else if (j?.hook_event_name === 'UserPromptSubmit') out = onPrompt(j);
-    else if (j?.hook_event_name === 'PreToolUse' && ['Agent', 'Task'].includes(j.tool_name) && !j.agent_id)
-      out = onDelegation(j);
-    if (out) process.stdout.write(JSON.stringify(out));
+    const j = JSON.parse(raw);
+    if (j?.hook_event_name === 'PreCompact') {
+      process.stdout.write(onCompact());
+    } else {
+      let out = null;
+      if (j?.hook_event_name === 'SessionStart' && !j.agent_id) {
+        capEffort();
+        out = onStart();
+      } else if (j?.hook_event_name === 'UserPromptSubmit') out = onPrompt(j);
+      else if (j?.hook_event_name === 'PreToolUse' && ['Agent', 'Task'].includes(j.tool_name) && !j.agent_id)
+        out = onDelegation(j);
+      if (out) process.stdout.write(JSON.stringify(out));
+    }
   }
 } catch {}
-process.exit(0);
+process.exitCode = 0;

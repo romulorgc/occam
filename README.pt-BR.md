@@ -66,7 +66,7 @@ flowchart LR
   C -->|grande demais, ou lê muito| A[Chamada Agent]
   A --> H{{hook occam}}
   H -->|brief só de leitura| K[Haiku]
-  H -->|padrão| S[Sonnet · medium]
+  H -->|todo o resto| S[Sonnet · medium]
   H -->|reviewer, ou motivo declarado| O[Opus, até high]
   H -->|architect| F[Fable · medium]
 ```
@@ -148,7 +148,7 @@ Tudo tem padrão e nada precisa de configuração. Para usar os seus nomes de ag
 - **Corta desperdício, nunca qualidade.** Revisão e testes continuam em modelo forte. O que vai para produção continua sendo revisado.
 - **Os custos são estimativas** pelos preços públicos de tabela. Em assinatura, leia como um indicador de quão rápido a sua cota vai embora.
 - **Não troca o seu modelo principal** e não escreve no `settings.json` além de se registrar, a menos que você ligue `capStoredEffort`.
-- **Ele aprova a chamada que reescreve.** Para trocar o modelo ou o esforço, o hook devolve a chamada com `permissionDecision: "allow"`, que é como um hook do Claude Code reescreve a entrada de uma ferramenta. Isso pula o pedido de permissão padrão da ferramenta Agent. As regras de deny e ask do seu settings continuam sendo avaliadas.
+- **Ele aprova a chamada que reescreve.** Para trocar o modelo ou o esforço, o hook devolve a chamada com `permissionDecision: "allow"`, que é como um hook do Claude Code reescreve a entrada de uma ferramenta. Isso pula o pedido de permissão padrão da ferramenta Agent. As regras de deny e ask do seu settings continuam sendo avaliadas. Para ver cada chamada reescrita antes de ela rodar, ponha `permission` em `ask` na configuração.
 - **Quem manda é você.** Um marcador no brief vence qualquer troca.
 
 ## Perguntas
